@@ -30,37 +30,45 @@ class ParticleNode(BaseNode, bpy.types.Node):
 
     particleName = StringProperty(name = "Name", default = "Main")
 
+    spawnRate = FloatProperty(name = "Spawn Rate", default = 100)
+
     def init(self, context):
         self.inputs.new("pn_EmitterSocket", "Emitter").link_limit = 0
-        self.inputs.new("pn_ForcesSocket", "Forces").link_limit = 0
+        self.inputs.new("pn_ModifiersSocket", "Modifiers").link_limit = 0
         self.inputs.new("pn_ConstraintsSocket", "Constraints").link_limit = 0
         self.outputs.new("pn_ParticleSocket", "Particle")
         self.outputs.new("pn_RenderSocket", "Render")
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "particleName")
+        layout.prop(self, "spawnRate")
 
 class SurfaceEmitterNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_SurfaceEmitterNode"
     bl_label = "Surface Emitter"
 
+    rateFactor = FloatProperty(name = "Rate Factor", default = 1)
+
     def init(self, context):
         self.inputs.new("pn_ObjectSocket", "Object").showName = False
         self.outputs.new("pn_EmitterSocket", "Emitter")
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "rateFactor")
 
 class GravityForceNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_GravityForceNode"
     bl_label = "Gravity Force"
 
     def init(self, context):
-        self.outputs.new("pn_ForcesSocket", "Force")
+        self.outputs.new("pn_ModifiersSocket", "Force")
 
 class AttractForceNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_AttractForceNode"
     bl_label = "Attract Force"
 
     def init(self, context):
-        self.outputs.new("pn_ForcesSocket", "Force")
+        self.outputs.new("pn_ModifiersSocket", "Force")
 
 class StickToSurfaceNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_StickToSurfaceNode"
@@ -68,6 +76,34 @@ class StickToSurfaceNode(BaseNode, bpy.types.Node):
 
     def init(self, context):
         self.outputs.new("pn_ConstraintsSocket", "Constraint")
+
+class AgeTriggerNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_AgeTriggerNode"
+    bl_label = "Age Trigger"
+
+    triggerTypeItems = [
+        ("REACHED", "Aged Reached", ""),
+        ("INTERVAL", "Interval", "")
+    ]
+
+    def createInputSocket(self, context = None):
+        if len(self.inputs) == 2:
+            self.inputs.remove(self.inputs[1])
+        if self.triggerType == "REACHED":
+            self.inputs.new("pn_FloatSocket", "Age")
+        elif self.triggerType == "INTERVAL":
+            self.inputs.new("pn_FloatSocket", "Interval")
+
+    triggerType = EnumProperty(items = triggerTypeItems, update = createInputSocket)
+
+    def init(self, context):
+        self.inputs.new("pn_ParticleSocket", "Particle")
+        self.outputs.new("pn_FlowControlSocket", "Next").link_limit = 1
+        self.createInputSocket()
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "triggerType", text = "")
+        
 
 class CollisionTriggerNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_CollisionTriggerNode"
@@ -188,11 +224,12 @@ class SpawnParticleNode(BaseNode, bpy.types.Node):
     def init(self, context):
         self.inputs.new("pn_FlowControlSocket", "Previous").link_limit = 0
         self.outputs.new("pn_FlowControlSocket", "Next").link_limit = 1
+        self.outputs.new("pn_FlowControlSocket", "New Particle Next").link_limit = 1
 
     def draw_buttons(self, context, layout):
         col = layout.column()
         col.prop(self, "particleName", text = "")
-        col.prop(self, "spawnType")
+        col.prop(self, "spawnType", text = "")
 
 
 
@@ -217,8 +254,8 @@ class EmitterSocket(BaseSocket, bpy.types.NodeSocket):
     bl_idname = "pn_EmitterSocket"
     drawColor = (1, 1, 1, 1)
 
-class ForcesSocket(BaseSocket, bpy.types.NodeSocket):
-    bl_idname = "pn_ForcesSocket"
+class ModifiersSocket(BaseSocket, bpy.types.NodeSocket):
+    bl_idname = "pn_ModifiersSocket"
     drawColor = (0.9, 0.3, 0.3, 1)
 
 class ConstraintsSocket(BaseSocket, bpy.types.NodeSocket):
@@ -280,11 +317,17 @@ def drawMenu(self, context):
 
     layout = self.layout
     insertNode(layout, "pn_ParticleNode", "Particle")
+    layout.separator()
     insertNode(layout, "pn_SurfaceEmitterNode", "Surface Emitter")
+    layout.separator()
     insertNode(layout, "pn_GravityForceNode", "Gravity")
     insertNode(layout, "pn_AttractForceNode", "Attract")
+    layout.separator()
     insertNode(layout, "pn_StickToSurfaceNode", "Stick to Surface")
+    layout.separator()
     insertNode(layout, "pn_CollisionTriggerNode", "Collision Trigger")
+    insertNode(layout, "pn_AgeTriggerNode", "Age Trigger")
+    layout.separator()
     insertNode(layout, "pn_BounceOnCollisionNode", "Bounce on Collision")
     insertNode(layout, "pn_SetAttributeNode", "Set Attribute")
     insertNode(layout, "pn_GetAttributeNode", "Get Attribute")
