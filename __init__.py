@@ -61,6 +61,7 @@ class MeshEmitterNode(BaseNode, bpy.types.Node):
     ]
 
     emitterType = EnumProperty(name = "Emitter Type", items = emitterTypeItems)
+    densityGroup = StringProperty(name = "Density")
 
     def init(self, context):
         self.newInput("pn_ObjectSocket", "Source").showName = False
@@ -70,6 +71,8 @@ class MeshEmitterNode(BaseNode, bpy.types.Node):
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "emitterType", text = "")
+        if self.emitterType in ("VERTICES", "EDGES", "FACES"):
+            layout.prop(self, "densityGroup", icon = "GROUP_VERTEX")
 
 class CurveEmitterNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_CurveEmitterNode"
@@ -318,6 +321,44 @@ class RenderTrailNode(BaseNode, bpy.types.Node):
         self.newInput("pn_ParticleSocket", "Particle")
         self.newInput("pn_FloatSocket", "Length").value = 10
 
+class VertexGroupWeightNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_VertexGroupWeightNode"
+    bl_label = "Vertex Group Weight"
+
+    groupName = StringProperty("Group")
+
+    def init(self, context):
+        self.newOutput("pn_FloatSocket", "Weight")
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "groupName", text = "", icon = "GROUP_VERTEX")
+
+class ImageColorNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_ImageColorNode"
+    bl_label = "Image Color"
+
+    uvMapName = StringProperty("UV Map")
+    image = PointerProperty(name = "Image", type = bpy.types.Image)
+
+    def init(self, context):
+        self.newOutput("pn_ColorSocket", "Color")
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "uvMapName", text = "", icon = "GROUP_UVS")
+        layout.prop(self, "image", text = "")
+
+class VertexColorNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_VertexColorNode"
+    bl_label = "Vertex Color"
+
+    vertexColorName = StringProperty(name = "Vertex Color")
+
+    def init(self, context):
+        self.newOutput("pn_ColorSocket", "Color")
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "vertexColorName", text = "", icon = "GROUP_VCOL")
+
 
 # Sockets
 ######################################################
@@ -428,6 +469,10 @@ def drawMenu(self, context):
     insertNode(layout, "pn_ConditionNode", "Condition")
     insertNode(layout, "pn_SpawnParticleNode", "Spawn Particle")
     insertNode(layout, "pn_RandomizeAttributeNode", "Randomize")
+    layout.separator()
+    insertNode(layout, "pn_VertexGroupWeightNode", "Vertex Group Weight")
+    insertNode(layout, "pn_ImageColorNode", "Image Color")
+    insertNode(layout, "pn_VertexColorNode", "Vertex Color")
     layout.separator()
     insertNode(layout, "pn_RenderPrimitiveNode", "Render Primitive")
     insertNode(layout, "pn_RenderInstanceNode", "Render Instance")
