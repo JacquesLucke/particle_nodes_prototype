@@ -78,7 +78,8 @@ class MeshEmitterNode(BaseNode, bpy.types.Node):
     ]
 
     emitterType = EnumProperty(name = "Emitter Type", items = emitterTypeItems)
-    densityGroup = StringProperty(name = "Density")
+    densityGroup = StringProperty(name = "Density",
+        description = "Control density on surface using a vertex group.")
 
     def init(self, context):
         self.newInput("pn_ObjectSocket", "Source").showName = False
@@ -87,9 +88,10 @@ class MeshEmitterNode(BaseNode, bpy.types.Node):
         self.newOutput("pn_EmitterSocket", "Emitter")
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, "emitterType", text = "")
+        col = layout.column()
+        col.prop(self, "emitterType", text = "")
         if self.emitterType in ("VERTICES", "EDGES", "FACES"):
-            layout.prop(self, "densityGroup", icon = "GROUP_VERTEX")
+            col.prop(self, "densityGroup", icon = "GROUP_VERTEX", text = "")
 
 class CurveEmitterNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_CurveEmitterNode"
@@ -106,7 +108,8 @@ class GateNode(BaseNode, bpy.types.Node):
     bl_label = "Gate"
 
     gateName = StringProperty(name = "Gate Name", default = "Gate 1")
-    isOpen = BoolProperty(name = "Pass Through", default = False)
+    isEnabled = BoolProperty(name = "Pass Through", default = False,
+        description = "True if modifiers are passed through by default.")
 
     def init(self, context):
         self.newInput("pn_ModifierSocket", "Modifiers")
@@ -115,15 +118,15 @@ class GateNode(BaseNode, bpy.types.Node):
     def draw_buttons(self, context, layout):
         col = layout.column(align = True)
         col.prop(self, "gateName", text = "", icon = "GAME")
-        col.prop(self, "isOpen",
-            text = "Open" if self.isOpen else "Closed",
-            icon = "LOCKVIEW_OFF" if self.isOpen else "LOCKVIEW_ON")
+        col.prop(self, "isEnabled",
+            text = "Enabled" if self.isEnabled else "Disabled",
+            icon = "LOCKVIEW_OFF" if self.isEnabled else "LOCKVIEW_ON")
 
 class ToggleGateNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_ToggleGateNode"
     bl_label = "Toggle Gate"
 
-    openGate = BoolProperty(name = "Open Gate", default = True)
+    enableGate = BoolProperty(name = "Open Gate", default = True)
     gateName = EnumProperty(name = "Gate Name", items = getGateNameItems)
 
     def init(self, context):
@@ -132,9 +135,9 @@ class ToggleGateNode(BaseNode, bpy.types.Node):
 
     def draw_buttons(self, context, layout):
         col = layout.column(align = True)
-        col.prop(self, "openGate",
-            text = "Open" if self.openGate else "Close",
-            icon = "LOCKVIEW_OFF" if self.openGate else "LOCKVIEW_ON")
+        col.prop(self, "enableGate",
+            text = "Enable" if self.enableGate else "Disable",
+            icon = "LOCKVIEW_OFF" if self.enableGate else "LOCKVIEW_ON")
         col.prop(self, "gateName", text = "", icon = "GAME")
 
 
@@ -185,6 +188,21 @@ class StickToSurfaceNode(BaseNode, bpy.types.Node):
     def init(self, context):
         self.newInput("pn_ObjectSocket", "Object").showName = False
         self.newOutput("pn_ModifierSocket", "Constraint")
+
+class FreezeNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_FreezeNode"
+    bl_label = "Freeze"
+
+    freezePosition = BoolProperty(name = "Position", default = True)
+    freezeRotation = BoolProperty(name = "Rotation", default = True)
+
+    def init(self, context):
+        self.newOutput("pn_ModifierSocket", "Constraint")
+
+    def draw_buttons(self, context, layout):
+        col = layout.column(align = True)
+        col.prop(self, "freezePosition", icon = "MAN_TRANS")
+        col.prop(self, "freezeRotation", icon = "MAN_ROT")
 
 class AgeTriggerNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_AgeTriggerNode"
@@ -529,6 +547,7 @@ def drawMenu(self, context):
     insertNode(layout, "pn_AttractForceNode", "Attract")
     insertNode(layout, "pn_FollowForceNode", "Follow")
     insertNode(layout, "pn_StickToSurfaceNode", "Stick to Surface")
+    insertNode(layout, "pn_FreezeNode", "Freeze")
     layout.separator()
     insertNode(layout, "pn_CollisionTriggerNode", "Collision Trigger")
     insertNode(layout, "pn_AgeTriggerNode", "Age Trigger")
