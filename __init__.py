@@ -32,6 +32,24 @@ class BaseNode:
         socket.link_limit = socket.outputLinkLimit
         return socket
 
+def getParticleTypeItems(self, context):
+    items = []
+    for node in self.id_data.nodes:
+        if isinstance(node, ParticleNode):
+            items.append((node.particleName, node.particleName, ""))
+    if len(items) == 0:
+        items.append(("NONE", "None", ""))
+    return items
+
+def getGateNameItems(self, context):
+    items = []
+    for node in self.id_data.nodes:
+        if isinstance(node, GateNode):
+            items.append((node.gateName, node.gateName, ""))
+    if len(items) == 0:
+        items.append(("NONE", "None", ""))
+    return items
+
 class ParticleNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_ParticleNode"
     bl_label = "Particle"
@@ -40,8 +58,7 @@ class ParticleNode(BaseNode, bpy.types.Node):
 
     def init(self, context):
         self.newInput("pn_EmitterSocket", "Emitter")
-        self.newInput("pn_ModifiersSocket", "Modifiers")
-        self.newInput("pn_ConstraintsSocket", "Constraints")
+        self.newInput("pn_ModifierSocket", "Modifiers")
         self.newOutput("pn_ParticleSocket", "Particle")
         self.color = (1, 0.7, 0.3)
         self.use_custom_color = True
@@ -84,26 +101,90 @@ class CurveEmitterNode(BaseNode, bpy.types.Node):
         self.newOutput("pn_FlowControlSocket", "On Birth")
         self.newOutput("pn_EmitterSocket", "Emitter")
 
+class GateNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_GateNode"
+    bl_label = "Gate"
+
+    gateName = StringProperty(name = "Gate Name", default = "Gate 1")
+    isOpen = BoolProperty(name = "Pass Through", default = False)
+
+    def init(self, context):
+        self.newInput("pn_ModifierSocket", "Modifiers")
+        self.newOutput("pn_ModifierSocket", "Modifiers")
+
+    def draw_buttons(self, context, layout):
+        col = layout.column(align = True)
+        col.prop(self, "gateName", text = "", icon = "GAME")
+        col.prop(self, "isOpen",
+            text = "Open" if self.isOpen else "Closed",
+            icon = "LOCKVIEW_OFF" if self.isOpen else "LOCKVIEW_ON")
+
+class ToggleGateNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_ToggleGateNode"
+    bl_label = "Toggle Gate"
+
+    openGate = BoolProperty(name = "Open Gate", default = True)
+    gateName = EnumProperty(name = "Gate Name", items = getGateNameItems)
+
+    def init(self, context):
+        self.newInput("pn_FlowControlSocket", "Previous")
+        self.newOutput("pn_FlowControlSocket", "Next")
+
+    def draw_buttons(self, context, layout):
+        col = layout.column(align = True)
+        col.prop(self, "openGate",
+            text = "Open" if self.openGate else "Close",
+            icon = "LOCKVIEW_OFF" if self.openGate else "LOCKVIEW_ON")
+        col.prop(self, "gateName", text = "", icon = "GAME")
+
+
 class GravityForceNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_GravityForceNode"
     bl_label = "Gravity Force"
 
+    def updateInputs(self, context = None):
+        self.inputs.clear()
+        if not self.useSceneGravity:
+            self.newInput("pn_VectorSocket", "Gravity").value = (0, 0, -1)
+
+    useSceneGravity = BoolProperty(name = "Use Scene Gravity", default = True,
+        update = updateInputs)
+
     def init(self, context):
-        self.newOutput("pn_ModifiersSocket", "Force")
+        self.updateInputs()
+        self.newOutput("pn_ModifierSocket", "Force")
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "useSceneGravity")
+
+class FollowForceNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_FollowForceNode"
+    bl_label = "Follow Force"
+
+    leaderType = EnumProperty(name = "Leader", items = getParticleTypeItems)
+
+    def init(self, context):
+        self.newOutput("pn_ModifierSocket", "Force")
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "leaderType", icon = "MOD_PARTICLES")
 
 class AttractForceNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_AttractForceNode"
     bl_label = "Attract Force"
 
     def init(self, context):
-        self.newOutput("pn_ModifiersSocket", "Force")
+        self.newInput("pn_VectorSocket", "Position")
+        self.newInput("pn_FloatSocket", "Strength")
+        self.newOutput("pn_ModifierSocket", "Force")
 
 class StickToSurfaceNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_StickToSurfaceNode"
     bl_label = "Stick to Surface"
 
     def init(self, context):
-        self.newOutput("pn_ConstraintsSocket", "Constraint")
+        self.newInput("pn_ObjectSocket", "Object").showName = False
+        self.newOutput("pn_ModifierSocket", "Constraint")
 
 class AgeTriggerNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_AgeTriggerNode"
@@ -153,14 +234,16 @@ attributeSocketTypes =  {
     "COLOR" : "pn_ColorSocket",
     "VELOCITY" : "pn_VectorSocket",
     "SIZE" : "pn_FloatSocket",
-    "AGE" : "pn_FloatSocket"
+    "AGE" : "pn_FloatSocket",
+    "POSITION" : "pn_VectorSocket"
 }
 
 attributeItems = [
     ("COLOR", "Color", ""),
     ("VELOCITY", "Velocity", ""),
     ("SIZE", "Size", ""),
-    ("AGE", "Age", "")
+    ("AGE", "Age", ""),
+    ("POSITION", "Position", "")
 ]
 
 class SetAttributeNode(BaseNode, bpy.types.Node):
@@ -243,13 +326,6 @@ class ConditionNode(BaseNode, bpy.types.Node):
     def draw_buttons(self, context, layout):
         layout.prop(self, "comparisonType", text = "")
 
-def getParticleNameItems(self, context):
-    items = []
-    for node in self.id_data.nodes:
-        if isinstance(node, ParticleNode):
-            items.append((node.particleName, node.particleName, ""))
-    return items
-
 class SpawnParticleNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_SpawnParticleNode"
     bl_label = "Spawn Particle"
@@ -268,7 +344,7 @@ class SpawnParticleNode(BaseNode, bpy.types.Node):
     ]
 
     particleName = EnumProperty(name = "Particle Type",
-        items = getParticleNameItems)
+        items = getParticleTypeItems)
     spawnType = EnumProperty(name = "Spawn Type", default = "DEFAULT_EMITTER",
         update = updateSockets, items = spawnTypeItems)
 
@@ -386,13 +462,8 @@ class EmitterSocket(BaseSocket, bpy.types.NodeSocket):
     inputLinkLimit = 0
 
 class ModifiersSocket(BaseSocket, bpy.types.NodeSocket):
-    bl_idname = "pn_ModifiersSocket"
+    bl_idname = "pn_ModifierSocket"
     drawColor = (0.9, 0.3, 0.3, 1)
-    inputLinkLimit = 0
-
-class ConstraintsSocket(BaseSocket, bpy.types.NodeSocket):
-    bl_idname = "pn_ConstraintsSocket"
-    drawColor = (0.3, 0.3, 0.3, 1)
     inputLinkLimit = 0
 
 class ParticleSocket(BaseSocket, bpy.types.NodeSocket):
@@ -456,11 +527,14 @@ def drawMenu(self, context):
     layout.separator()
     insertNode(layout, "pn_GravityForceNode", "Gravity")
     insertNode(layout, "pn_AttractForceNode", "Attract")
-    layout.separator()
+    insertNode(layout, "pn_FollowForceNode", "Follow")
     insertNode(layout, "pn_StickToSurfaceNode", "Stick to Surface")
     layout.separator()
     insertNode(layout, "pn_CollisionTriggerNode", "Collision Trigger")
     insertNode(layout, "pn_AgeTriggerNode", "Age Trigger")
+    layout.separator()
+    insertNode(layout, "pn_GateNode", "Gate")
+    insertNode(layout, "pn_ToggleGateNode", "Toogle Gate")
     layout.separator()
     insertNode(layout, "pn_BounceOnCollisionNode", "Bounce on Collision")
     insertNode(layout, "pn_SetAttributeNode", "Set Attribute")
