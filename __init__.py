@@ -71,6 +71,16 @@ class MeshEmitterNode(BaseNode, bpy.types.Node):
     def draw_buttons(self, context, layout):
         layout.prop(self, "emitterType", text = "")
 
+class CurveEmitterNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_CurveEmitterNode"
+    bl_label = "Curve Emitter"
+
+    def init(self, context):
+        self.newInput("pn_ObjectSocket", "Source").showName = False
+        self.newInput("pn_FloatSocket", "Rate")
+        self.newOutput("pn_FlowControlSocket", "On Birth")
+        self.newOutput("pn_EmitterSocket", "Emitter")
+
 class GravityForceNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_GravityForceNode"
     bl_label = "Gravity Force"
@@ -401,6 +411,7 @@ def drawMenu(self, context):
     insertNode(layout, "pn_ParticleNode", "Particle")
     layout.separator()
     insertNode(layout, "pn_MeshEmitterNode", "Mesh Emitter")
+    insertNode(layout, "pn_CurveEmitterNode", "Curve Emitter")
     layout.separator()
     insertNode(layout, "pn_GravityForceNode", "Gravity")
     insertNode(layout, "pn_AttractForceNode", "Attract")
