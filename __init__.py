@@ -344,6 +344,39 @@ class ConditionNode(BaseNode, bpy.types.Node):
     def draw_buttons(self, context, layout):
         layout.prop(self, "comparisonType", text = "")
 
+class ChangeColorNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_ChangeColorNode"
+    bl_label = "Change Color"
+
+    def updateSockets(self, context = None):
+        if len(self.inputs) == 3:
+            self.inputs.remove(self.inputs[2])
+            self.outputs.remove(self.outputs[1])
+        if self.fade:
+            self.newInput("pn_FloatSocket", "Duration")
+            self.newOutput("pn_FlowControlSocket", "After Fade")
+
+    fade = BoolProperty(name = "Fade", default = False,
+        update = updateSockets)
+
+    def init(self, context):
+        self.newInput("pn_FlowControlSocket", "Previous")
+        self.newInput("pn_ColorSocket", "Color")
+        self.newOutput("pn_FlowControlSocket", "Next")
+        self.updateSockets()
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "fade")
+
+class RandomColorNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_RandomColorNode"
+    bl_label = "Random Color"
+
+    def init(self, context):
+        self.newInput("pn_ColorSocket", "Base")
+        self.newInput("pn_FloatSocket", "Jitter")
+        self.newOutput("pn_ColorSocket", "Color")
+
 class SpawnParticleNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_SpawnParticleNode"
     bl_label = "Spawn Particle"
@@ -555,9 +588,11 @@ def drawMenu(self, context):
     insertNode(layout, "pn_GateNode", "Gate")
     insertNode(layout, "pn_ToggleGateNode", "Toogle Gate")
     layout.separator()
-    insertNode(layout, "pn_BounceOnCollisionNode", "Bounce on Collision")
+    insertNode(layout, "pn_RandomColorNode", "Random Color")
+    insertNode(layout, "pn_ChangeColorNode", "Change Color")
     insertNode(layout, "pn_SetAttributeNode", "Set Attribute")
     insertNode(layout, "pn_GetAttributeNode", "Get Attribute")
+    insertNode(layout, "pn_BounceOnCollisionNode", "Bounce on Collision")
     insertNode(layout, "pn_KillParticleNode", "Kill Particle")
     insertNode(layout, "pn_ConditionNode", "Condition")
     insertNode(layout, "pn_SpawnParticleNode", "Spawn Particle")
