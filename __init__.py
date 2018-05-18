@@ -387,6 +387,44 @@ class RandomColorNode(BaseNode, bpy.types.Node):
         self.newInput("pn_FloatSocket", "Jitter")
         self.newOutput("pn_ColorSocket", "Color")
 
+class ChangeDirectionNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_ChangeDirectionNode"
+    bl_label = "Change Direction"
+
+    changeTypeItems = [
+        ("SET", "Set", ""),
+        ("RANDOMIZE", "Randomize", "")
+    ]
+
+    def updateSockets(self, context = None):
+        while len(self.inputs) > 1: self.inputs.remove(self.inputs[-1])
+        while len(self.outputs) > 1: self.outputs.remove(self.outputs[-1])
+
+        if self.changeType == "SET":
+            self.newInput("pn_VectorSocket", "Direction")
+        elif self.changeType == "RANDOMIZE":
+            self.newInput("pn_FloatSocket", "Strength")
+
+        if self.fade:
+            self.newInput("pn_FloatSocket", "Duration")
+            self.newOutput("pn_FlowControlSocket", "After Fade")
+
+    changeType =  EnumProperty(name = "Change Type", default = "RANDOMIZE", 
+        update = updateSockets, items = changeTypeItems)
+
+    fade = BoolProperty(name = "Fade", default = False,
+        update = updateSockets)
+
+    def init(self, context):
+        self.newInput("pn_FlowControlSocket", "Previous")
+        self.newOutput("pn_FlowControlSocket", "Next")
+        self.updateSockets()
+
+    def draw_buttons(self, context, layout):
+        col = layout.column()
+        col.prop(self, "changeType", text = "")
+        col.prop(self, "fade")
+
 class SpawnParticleNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_SpawnParticleNode"
     bl_label = "Spawn Particle"
@@ -608,6 +646,7 @@ def drawMenu(self, context):
     insertNode(layout, "pn_SpawnParticleNode", "Spawn Particle")
     insertNode(layout, "pn_RandomizeAttributeNode", "Randomize")
     insertNode(layout, "pn_WaitNode", "Wait")
+    insertNode(layout, "pn_ChangeDirectionNode", "Change Direction")
     layout.separator()
     insertNode(layout, "pn_VertexGroupWeightNode", "Vertex Group Weight")
     insertNode(layout, "pn_ImageColorNode", "Image Color")
