@@ -368,15 +368,15 @@ class ChangeColorNode(BaseNode, bpy.types.Node):
     def draw_buttons(self, context, layout):
         layout.prop(self, "fade")
 
-class WaitNode(BaseNode, bpy.types.Node):
-    bl_idname = "pn_WaitNode"
-    bl_label = "Wait"
+class TimerNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_TimerNode"
+    bl_label = "Timer"
 
     def init(self, context):
         self.newInput("pn_FlowControlSocket", "Previous")
         self.newInput("pn_FloatSocket", "Duration")
         self.newOutput("pn_FlowControlSocket", "Next")
-        self.newOutput("pn_FlowControlSocket", "After Wait")
+        self.newOutput("pn_FlowControlSocket", "After Timer")
 
 class RandomColorNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_RandomColorNode"
@@ -645,7 +645,7 @@ def drawMenu(self, context):
     insertNode(layout, "pn_ConditionNode", "Condition")
     insertNode(layout, "pn_SpawnParticleNode", "Spawn Particle")
     insertNode(layout, "pn_RandomizeAttributeNode", "Randomize")
-    insertNode(layout, "pn_WaitNode", "Wait")
+    insertNode(layout, "pn_TimerNode", "Timer")
     insertNode(layout, "pn_ChangeDirectionNode", "Change Direction")
     layout.separator()
     insertNode(layout, "pn_VertexGroupWeightNode", "Vertex Group Weight")
