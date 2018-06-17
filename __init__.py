@@ -534,6 +534,25 @@ class VertexColorNode(BaseNode, bpy.types.Node):
     def draw_buttons(self, context, layout):
         layout.prop(self, "vertexColorName", text = "", icon = "GROUP_VCOL")
 
+class MixColorNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_MixColorNode"
+    bl_label = "Mix Color"
+
+    def init(self, context):
+        self.newInput("pn_FloatSocket", "Factor")
+        self.newInput("pn_ColorSocket", "A")
+        self.newInput("pn_ColorSocket", "B")
+        self.newOutput("pn_ColorSocket", "Color")
+
+class FloatMathNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_FloatMathNode"
+    bl_label = "Float Math"
+
+    def init(self, context):
+        self.newInput("pn_FloatSocket", "A")
+        self.newInput("pn_FloatSocket", "B")
+        self.newOutput("pn_FloatSocket", "B")
+
 
 # Sockets
 ######################################################
@@ -647,6 +666,9 @@ def drawMenu(self, context):
     insertNode(layout, "pn_RandomizeAttributeNode", "Randomize")
     insertNode(layout, "pn_TimerNode", "Timer")
     insertNode(layout, "pn_ChangeDirectionNode", "Change Direction")
+    layout.separator()
+    insertNode(layout, "pn_MixColorNode", "Mix Color")
+    insertNode(layout, "pn_FloatMathNode", "Float Math")
     layout.separator()
     insertNode(layout, "pn_VertexGroupWeightNode", "Vertex Group Weight")
     insertNode(layout, "pn_ImageColorNode", "Image Color")
