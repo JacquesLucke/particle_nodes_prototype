@@ -3,7 +3,7 @@ bl_info = {
     "description": "",
     "author":      "Jacques Lucke",
     "version":     (2, 1, 1),
-    "blender":     (2, 79, 0),
+    "blender":     (2, 80, 0),
     "location":    "Node Editor",
     "category":    "Node",
     "warning":     "This version is still in development."
@@ -35,8 +35,8 @@ class BaseNode:
 def getParticleTypeItems(self, context):
     items = []
     for node in self.id_data.nodes:
-        if isinstance(node, ParticleNode):
-            items.append((node.particleName, node.particleName, ""))
+        if isinstance(node, ParticleTypeNode):
+            items.append((node.particleTypeName, node.particleTypeName, ""))
     if len(items) == 0:
         items.append(("NONE", "None", ""))
     return items
@@ -50,21 +50,21 @@ def getGateNameItems(self, context):
         items.append(("NONE", "None", ""))
     return items
 
-class ParticleNode(BaseNode, bpy.types.Node):
-    bl_idname = "pn_ParticleNode"
-    bl_label = "Particle"
+class ParticleTypeNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_ParticleTypeNode"
+    bl_label = "Particle Type"
 
-    particleName = StringProperty(name = "Name", default = "Main")
+    particleTypeName: StringProperty(name = "Name", default = "Main")
 
     def init(self, context):
-        self.newInput("pn_EmitterSocket", "Emitter")
+        self.newInput("pn_EmitterSocket", "Emitters")
         self.newInput("pn_ModifierSocket", "Modifiers")
-        self.newOutput("pn_ParticleSocket", "Particle")
+        self.newOutput("pn_EventSocket", "Events")
         self.color = (1, 0.7, 0.3)
         self.use_custom_color = True
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, "particleName", text = "", icon = "MOD_PARTICLES")
+        layout.prop(self, "particleTypeName", text = "", icon = "MOD_PARTICLES")
 
 class MeshEmitterNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_MeshEmitterNode"
@@ -77,9 +77,9 @@ class MeshEmitterNode(BaseNode, bpy.types.Node):
         ("VOLUME", "Volume", "", "SNAP_VOLUME", 3)
     ]
 
-    emitterType = EnumProperty(name = "Emitter Type", items = emitterTypeItems)
-    densityGroup = StringProperty(name = "Density",
-        description = "Control density on surface using a vertex group.")
+    emitterType: EnumProperty(name = "Emitter Type", items = emitterTypeItems)
+    densityGroup: StringProperty(name = "Density",
+        description = "Control density on surface using a vertex group")
 
     def init(self, context):
         self.newInput("pn_ObjectSocket", "Source").showName = False
@@ -107,9 +107,9 @@ class GateNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_GateNode"
     bl_label = "Gate"
 
-    gateName = StringProperty(name = "Gate Name", default = "Gate 1")
-    isEnabled = BoolProperty(name = "Pass Through", default = False,
-        description = "True if modifiers are passed through by default.")
+    gateName: StringProperty(name = "Gate Name", default = "Gate 1")
+    isEnabled: BoolProperty(name = "Pass Through", default = False,
+        description = "True if modifiers are passed through by default")
 
     def init(self, context):
         self.newInput("pn_ModifierSocket", "Modifiers")
@@ -117,7 +117,7 @@ class GateNode(BaseNode, bpy.types.Node):
 
     def draw_buttons(self, context, layout):
         col = layout.column(align = True)
-        col.prop(self, "gateName", text = "", icon = "GAME")
+        col.prop(self, "gateName", text = "", icon = "PIVOT_ACTIVE")
         col.prop(self, "isEnabled",
             text = "Enabled" if self.isEnabled else "Disabled",
             icon = "LOCKVIEW_OFF" if self.isEnabled else "LOCKVIEW_ON")
@@ -126,19 +126,19 @@ class ToggleGateNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_ToggleGateNode"
     bl_label = "Toggle Gate"
 
-    enableGate = BoolProperty(name = "Open Gate", default = True)
-    gateName = EnumProperty(name = "Gate Name", items = getGateNameItems)
+    enableGate: BoolProperty(name = "Open Gate", default = True)
+    gateName: EnumProperty(name = "Gate Name", items = getGateNameItems)
 
     def init(self, context):
-        self.newInput("pn_FlowControlSocket", "Previous")
-        self.newOutput("pn_FlowControlSocket", "Next")
+        self.newInput("pn_FlowControlSocket", "(In)")
+        self.newOutput("pn_FlowControlSocket", "(Out)")
 
     def draw_buttons(self, context, layout):
         col = layout.column(align = True)
         col.prop(self, "enableGate",
             text = "Enable" if self.enableGate else "Disable",
             icon = "LOCKVIEW_OFF" if self.enableGate else "LOCKVIEW_ON")
-        col.prop(self, "gateName", text = "", icon = "GAME")
+        col.prop(self, "gateName", text = "", icon = "PIVOT_ACTIVE")
 
 
 class GravityForceNode(BaseNode, bpy.types.Node):
@@ -150,7 +150,7 @@ class GravityForceNode(BaseNode, bpy.types.Node):
         if not self.useSceneGravity:
             self.newInput("pn_VectorSocket", "Gravity").value = (0, 0, -1)
 
-    useSceneGravity = BoolProperty(name = "Use Scene Gravity", default = True,
+    useSceneGravity: BoolProperty(name = "Use Scene Gravity", default = True,
         update = updateInputs)
 
     def init(self, context):
@@ -164,7 +164,7 @@ class FollowForceNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_FollowForceNode"
     bl_label = "Follow Force"
 
-    leaderType = EnumProperty(name = "Leader", items = getParticleTypeItems)
+    leaderType: EnumProperty(name = "Leader", items = getParticleTypeItems)
 
     def init(self, context):
         self.newOutput("pn_ModifierSocket", "Force")
@@ -193,8 +193,8 @@ class FreezeNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_FreezeNode"
     bl_label = "Freeze"
 
-    freezePosition = BoolProperty(name = "Position", default = True)
-    freezeRotation = BoolProperty(name = "Rotation", default = True)
+    freezePosition: BoolProperty(name = "Position", default = True)
+    freezeRotation: BoolProperty(name = "Rotation", default = True)
 
     def init(self, context):
         self.newOutput("pn_ModifierSocket", "Constraint")
@@ -204,9 +204,9 @@ class FreezeNode(BaseNode, bpy.types.Node):
         col.prop(self, "freezePosition", icon = "MAN_TRANS")
         col.prop(self, "freezeRotation", icon = "MAN_ROT")
 
-class AgeTriggerNode(BaseNode, bpy.types.Node):
-    bl_idname = "pn_AgeTriggerNode"
-    bl_label = "Age Trigger"
+class AgeEventNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_AgeEventNode"
+    bl_label = "Age Event"
 
     triggerTypeItems = [
         ("REACHED", "Aged Reached", ""),
@@ -221,32 +221,32 @@ class AgeTriggerNode(BaseNode, bpy.types.Node):
         elif self.triggerType == "INTERVAL":
             self.inputs.new("pn_FloatSocket", "Interval")
 
-    triggerType = EnumProperty(items = triggerTypeItems, update = createInputSocket)
+    triggerType: EnumProperty(items = triggerTypeItems, update = createInputSocket)
 
     def init(self, context):
-        self.newInput("pn_ParticleSocket", "Particle")
-        self.newOutput("pn_FlowControlSocket", "Next")
+        self.newInput("pn_EventSocket", "Events")
+        self.newOutput("pn_FlowControlSocket", "On Event")
         self.createInputSocket()
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "triggerType", text = "")
 
 
-class CollisionTriggerNode(BaseNode, bpy.types.Node):
-    bl_idname = "pn_CollisionTriggerNode"
-    bl_label = "Collision Trigger"
+class CollisionEventNode(BaseNode, bpy.types.Node):
+    bl_idname = "pn_CollisionEventNode"
+    bl_label = "Collision Event"
 
     def init(self, context):
-        self.newInput("pn_ParticleSocket", "Particle")
-        self.newOutput("pn_FlowControlSocket", "Next")
+        self.newInput("pn_EventSocket", "Events")
+        self.newOutput("pn_FlowControlSocket", "On Event")
 
 class BounceOnCollisionNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_BounceOnCollisionNode"
     bl_label = "Bounce on Collision"
 
     def init(self, context):
-        self.newInput("pn_FlowControlSocket", "Previous")
-        self.newOutput("pn_FlowControlSocket", "Next")
+        self.newInput("pn_FlowControlSocket", "(In)")
+        self.newOutput("pn_FlowControlSocket", "(Out)")
 
 attributeSocketTypes =  {
     "COLOR" : "pn_ColorSocket",
@@ -275,11 +275,11 @@ class SetAttributeNode(BaseNode, bpy.types.Node):
         self.inputs.new(socketType, "Value").showName = False
 
 
-    attribute = EnumProperty(items = attributeItems, update = buildDataInputSocket)
+    attribute: EnumProperty(items = attributeItems, update = buildDataInputSocket)
 
     def init(self, context):
-        self.newInput("pn_FlowControlSocket", "Previous")
-        self.newOutput("pn_FlowControlSocket", "Next")
+        self.newInput("pn_FlowControlSocket", "(In)")
+        self.newOutput("pn_FlowControlSocket", "(Out)")
         self.buildDataInputSocket()
 
     def draw_buttons(self, context, layout):
@@ -290,18 +290,18 @@ class KillParticleNode(BaseNode, bpy.types.Node):
     bl_label = "Kill Particle"
 
     def init(self, context):
-        self.newInput("pn_FlowControlSocket", "Previous")
+        self.newInput("pn_FlowControlSocket", "(In)")
 
 class RandomizeAttributeNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_RandomizeAttributeNode"
     bl_label = "Randomize Attribute"
 
-    attribute = EnumProperty(items = attributeItems)
+    attribute: EnumProperty(items = attributeItems)
 
     def init(self, context):
-        self.newInput("pn_FlowControlSocket", "Previous")
+        self.newInput("pn_FlowControlSocket", "(In)")
         self.newInput("pn_FloatSocket", "Strength")
-        self.newOutput("pn_FlowControlSocket", "Next")
+        self.newOutput("pn_FlowControlSocket", "(Out)")
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "attribute", text = "")
@@ -315,7 +315,7 @@ class GetAttributeNode(BaseNode, bpy.types.Node):
             self.outputs.remove(self.outputs[0])
         self.newOutput(attributeSocketTypes[self.attribute], "Value")
 
-    attribute = EnumProperty(items = attributeItems, update = buildOutputSocket)
+    attribute: EnumProperty(items = attributeItems, update = buildOutputSocket)
 
     def init(self, context):
         self.buildOutputSocket()
@@ -332,10 +332,10 @@ class ConditionNode(BaseNode, bpy.types.Node):
         ("GREATER", "A > B", "")
     ]
 
-    comparisonType = EnumProperty(items = comparisonTypeItems)
+    comparisonType: EnumProperty(items = comparisonTypeItems)
 
     def init(self, context):
-        self.newInput("pn_FlowControlSocket", "Previous")
+        self.newInput("pn_FlowControlSocket", "(In)")
         self.newInput("pn_FloatSocket", "A")
         self.newInput("pn_FloatSocket", "B")
         self.newOutput("pn_FlowControlSocket", "If True")
@@ -356,13 +356,13 @@ class ChangeColorNode(BaseNode, bpy.types.Node):
             self.newInput("pn_FloatSocket", "Duration")
             self.newOutput("pn_FlowControlSocket", "After Fade")
 
-    fade = BoolProperty(name = "Fade", default = False,
+    fade: BoolProperty(name = "Fade", default = False,
         update = updateSockets)
 
     def init(self, context):
-        self.newInput("pn_FlowControlSocket", "Previous")
+        self.newInput("pn_FlowControlSocket", "(In)")
         self.newInput("pn_ColorSocket", "Color")
-        self.newOutput("pn_FlowControlSocket", "Next")
+        self.newOutput("pn_FlowControlSocket", "(Out)")
         self.updateSockets()
 
     def draw_buttons(self, context, layout):
@@ -373,9 +373,9 @@ class TimerNode(BaseNode, bpy.types.Node):
     bl_label = "Timer"
 
     def init(self, context):
-        self.newInput("pn_FlowControlSocket", "Previous")
+        self.newInput("pn_FlowControlSocket", "(In)")
         self.newInput("pn_FloatSocket", "Duration")
-        self.newOutput("pn_FlowControlSocket", "Next")
+        self.newOutput("pn_FlowControlSocket", "(Out)")
         self.newOutput("pn_FlowControlSocket", "After Timer")
 
 class RandomColorNode(BaseNode, bpy.types.Node):
@@ -409,15 +409,15 @@ class ChangeDirectionNode(BaseNode, bpy.types.Node):
             self.newInput("pn_FloatSocket", "Duration")
             self.newOutput("pn_FlowControlSocket", "After Fade")
 
-    changeType =  EnumProperty(name = "Change Type", default = "RANDOMIZE", 
+    changeType: EnumProperty(name = "Change Type", default = "RANDOMIZE",
         update = updateSockets, items = changeTypeItems)
 
-    fade = BoolProperty(name = "Fade", default = False,
+    fade: BoolProperty(name = "Fade", default = False,
         update = updateSockets)
 
     def init(self, context):
-        self.newInput("pn_FlowControlSocket", "Previous")
-        self.newOutput("pn_FlowControlSocket", "Next")
+        self.newInput("pn_FlowControlSocket", "(In)")
+        self.newOutput("pn_FlowControlSocket", "(Out)")
         self.updateSockets()
 
     def draw_buttons(self, context, layout):
@@ -442,19 +442,19 @@ class SpawnParticleNode(BaseNode, bpy.types.Node):
         ("COPY", "Copy", "")
     ]
 
-    particleName = EnumProperty(name = "Particle Type",
+    particleTypeName: EnumProperty(name = "Particle Type",
         items = getParticleTypeItems)
-    spawnType = EnumProperty(name = "Spawn Type", default = "DEFAULT_EMITTER",
+    spawnType: EnumProperty(name = "Spawn Type", default = "DEFAULT_EMITTER",
         update = updateSockets, items = spawnTypeItems)
 
     def init(self, context):
-        self.newInput("pn_FlowControlSocket", "Previous")
-        self.newOutput("pn_FlowControlSocket", "Next")
-        self.newOutput("pn_FlowControlSocket", "New Particle Next")
+        self.newInput("pn_FlowControlSocket", "(In)")
+        self.newOutput("pn_FlowControlSocket", "(Out)")
+        self.newOutput("pn_FlowControlSocket", "On Birth")
 
     def draw_buttons(self, context, layout):
         col = layout.column()
-        col.prop(self, "particleName", text = "", icon = "MOD_PARTICLES")
+        col.prop(self, "particleTypeName", text = "", icon = "MOD_PARTICLES")
         col.prop(self, "spawnType", text = "")
 
 class RenderPrimitiveNode(BaseNode, bpy.types.Node):
@@ -466,13 +466,13 @@ class RenderPrimitiveNode(BaseNode, bpy.types.Node):
         ("SPHERE", "Sphere", "", "MATSPHERE", 1)
     ]
 
-    primitiveType = EnumProperty(name = "Primitive Type",
+    primitiveType: EnumProperty(name = "Primitive Type",
         items = primitiveTypeItems)
 
-    material = PointerProperty(name = "Material", type = bpy.types.Material)
+    material: PointerProperty(name = "Material", type = bpy.types.Material)
 
     def init(self, context):
-        self.newInput("pn_ParticleSocket", "Particle")
+        self.newInput("pn_EventSocket", "Particle")
         self.newInput("pn_FloatSocket", "Size").value = 1
 
     def draw_buttons(self, context, layout):
@@ -484,7 +484,7 @@ class RenderInstanceNode(BaseNode, bpy.types.Node):
     bl_label = "Render Instance"
 
     def init(self, context):
-        self.newInput("pn_ParticleSocket", "Particle")
+        self.newInput("pn_EventSocket", "Particle")
         self.newInput("pn_ObjectSocket", "Object").showName = False
         self.newInput("pn_FloatSocket", "Size").value = 1
 
@@ -493,14 +493,14 @@ class RenderTrailNode(BaseNode, bpy.types.Node):
     bl_label = "Render Trail"
 
     def init(self, context):
-        self.newInput("pn_ParticleSocket", "Particle")
+        self.newInput("pn_EventSocket", "Particle")
         self.newInput("pn_FloatSocket", "Length").value = 10
 
 class VertexGroupWeightNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_VertexGroupWeightNode"
     bl_label = "Vertex Group Weight"
 
-    groupName = StringProperty("Group")
+    groupName: StringProperty("Group")
 
     def init(self, context):
         self.newOutput("pn_FloatSocket", "Weight")
@@ -512,8 +512,8 @@ class ImageColorNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_ImageColorNode"
     bl_label = "Image Color"
 
-    uvMapName = StringProperty("UV Map")
-    image = PointerProperty(name = "Image", type = bpy.types.Image)
+    uvMapName: StringProperty("UV Map")
+    image: PointerProperty(name = "Image", type = bpy.types.Image)
 
     def init(self, context):
         self.newOutput("pn_ColorSocket", "Color")
@@ -526,7 +526,7 @@ class VertexColorNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_VertexColorNode"
     bl_label = "Vertex Color"
 
-    vertexColorName = StringProperty(name = "Vertex Color")
+    vertexColorName: StringProperty(name = "Vertex Color")
 
     def init(self, context):
         self.newOutput("pn_ColorSocket", "Color")
@@ -548,10 +548,17 @@ class FloatMathNode(BaseNode, bpy.types.Node):
     bl_idname = "pn_FloatMathNode"
     bl_label = "Float Math"
 
+    operation: EnumProperty(items=[
+        ("ADD", "Add", ""),
+    ])
+
     def init(self, context):
         self.newInput("pn_FloatSocket", "A")
         self.newInput("pn_FloatSocket", "B")
         self.newOutput("pn_FloatSocket", "B")
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "operation", text = "")
 
 
 # Sockets
@@ -568,10 +575,10 @@ class BaseSocket:
         if not (self.is_linked or self.is_output) and hasattr(self, "drawProperty"):
             self.drawProperty(layout, text if self.showName else "", node)
         else:
-            layout.label(text)
+            layout.label(text = text)
 
 class ValueSocket(BaseSocket):
-    showName = BoolProperty(default = True)
+    showName: BoolProperty(default = True)
     drawColor = (0, 0, 0, 1)
 
 class EmitterSocket(BaseSocket, bpy.types.NodeSocket):
@@ -585,7 +592,7 @@ class ModifiersSocket(BaseSocket, bpy.types.NodeSocket):
     inputLinkLimit = 0
 
 class ParticleSocket(BaseSocket, bpy.types.NodeSocket):
-    bl_idname = "pn_ParticleSocket"
+    bl_idname = "pn_EventSocket"
     drawColor = (0.9, 0.9, 0.1, 1)
 
 class FlowControlSocket(BaseSocket, bpy.types.NodeSocket):
@@ -597,7 +604,7 @@ class FlowControlSocket(BaseSocket, bpy.types.NodeSocket):
 class ObjectSocket(ValueSocket, bpy.types.NodeSocket):
     bl_idname = "pn_ObjectSocket"
 
-    value = PointerProperty(type = bpy.types.Object)
+    value: PointerProperty(type = bpy.types.Object)
 
     def drawProperty(self, layout, text, node):
         layout.prop(self, "value", text = text)
@@ -605,7 +612,7 @@ class ObjectSocket(ValueSocket, bpy.types.NodeSocket):
 class ColorSocket(ValueSocket, bpy.types.NodeSocket):
     bl_idname = "pn_ColorSocket"
 
-    value = FloatVectorProperty(
+    value: FloatVectorProperty(
         default = [0.5, 0.5, 0.5], subtype = "COLOR",
         soft_min = 0.0, soft_max = 1.0)
 
@@ -615,7 +622,7 @@ class ColorSocket(ValueSocket, bpy.types.NodeSocket):
 class FloatSocket(ValueSocket, bpy.types.NodeSocket):
     bl_idname = "pn_FloatSocket"
 
-    value = FloatProperty()
+    value: FloatProperty()
 
     def drawProperty(self, layout, text, node):
         layout.prop(self, "value", text = text)
@@ -623,7 +630,7 @@ class FloatSocket(ValueSocket, bpy.types.NodeSocket):
 class VectorSocket(ValueSocket, bpy.types.NodeSocket):
     bl_idname = "pn_VectorSocket"
 
-    value = FloatVectorProperty(subtype = "XYZ")
+    value: FloatVectorProperty(subtype = "XYZ")
 
     def drawProperty(self, layout, text, node):
         layout.column().prop(self, "value", text = text)
@@ -638,45 +645,45 @@ def drawMenu(self, context):
     layout = self.layout
     layout.operator_context = "INVOKE_DEFAULT"
 
-    insertNode(layout, "pn_ParticleNode", "Particle")
+    insertNode(layout, "pn_ParticleTypeNode", text = "Particle Type")
     layout.separator()
-    insertNode(layout, "pn_MeshEmitterNode", "Mesh Emitter")
-    insertNode(layout, "pn_CurveEmitterNode", "Curve Emitter")
+    insertNode(layout, "pn_MeshEmitterNode", text = "Mesh Emitter")
+    insertNode(layout, "pn_CurveEmitterNode", text = "Curve Emitter")
     layout.separator()
-    insertNode(layout, "pn_GravityForceNode", "Gravity")
-    insertNode(layout, "pn_AttractForceNode", "Attract")
-    insertNode(layout, "pn_FollowForceNode", "Follow")
-    insertNode(layout, "pn_StickToSurfaceNode", "Stick to Surface")
-    insertNode(layout, "pn_FreezeNode", "Freeze")
+    insertNode(layout, "pn_GravityForceNode", text = "Gravity")
+    insertNode(layout, "pn_AttractForceNode", text = "Attract")
+    insertNode(layout, "pn_FollowForceNode", text = "Follow")
+    insertNode(layout, "pn_StickToSurfaceNode", text = "Stick to Surface")
+    insertNode(layout, "pn_FreezeNode", text = "Freeze")
     layout.separator()
-    insertNode(layout, "pn_CollisionTriggerNode", "Collision Trigger")
-    insertNode(layout, "pn_AgeTriggerNode", "Age Trigger")
+    insertNode(layout, "pn_CollisionEventNode", text = "Collision Event")
+    insertNode(layout, "pn_AgeEventNode", text = "Age Event")
     layout.separator()
-    insertNode(layout, "pn_GateNode", "Gate")
-    insertNode(layout, "pn_ToggleGateNode", "Toogle Gate")
+    insertNode(layout, "pn_GateNode", text = "Gate")
+    insertNode(layout, "pn_ToggleGateNode", text = "Toogle Gate")
     layout.separator()
-    insertNode(layout, "pn_RandomColorNode", "Random Color")
-    insertNode(layout, "pn_ChangeColorNode", "Change Color")
-    insertNode(layout, "pn_SetAttributeNode", "Set Attribute")
-    insertNode(layout, "pn_GetAttributeNode", "Get Attribute")
-    insertNode(layout, "pn_BounceOnCollisionNode", "Bounce on Collision")
-    insertNode(layout, "pn_KillParticleNode", "Kill Particle")
-    insertNode(layout, "pn_ConditionNode", "Condition")
-    insertNode(layout, "pn_SpawnParticleNode", "Spawn Particle")
-    insertNode(layout, "pn_RandomizeAttributeNode", "Randomize")
-    insertNode(layout, "pn_TimerNode", "Timer")
-    insertNode(layout, "pn_ChangeDirectionNode", "Change Direction")
+    insertNode(layout, "pn_RandomColorNode", text = "Random Color")
+    insertNode(layout, "pn_ChangeColorNode", text = "Change Color")
+    insertNode(layout, "pn_SetAttributeNode", text = "Set Attribute")
+    insertNode(layout, "pn_GetAttributeNode", text = "Get Attribute")
+    insertNode(layout, "pn_BounceOnCollisionNode", text = "Bounce on Collision")
+    insertNode(layout, "pn_KillParticleNode", text = "Kill Particle")
+    insertNode(layout, "pn_ConditionNode", text = "Condition")
+    insertNode(layout, "pn_SpawnParticleNode", text = "Spawn Particle")
+    insertNode(layout, "pn_RandomizeAttributeNode", text = "Randomize")
+    insertNode(layout, "pn_TimerNode", text = "Timer")
+    insertNode(layout, "pn_ChangeDirectionNode", text = "Change Direction")
     layout.separator()
-    insertNode(layout, "pn_MixColorNode", "Mix Color")
-    insertNode(layout, "pn_FloatMathNode", "Float Math")
+    insertNode(layout, "pn_MixColorNode", text = "Mix Color")
+    insertNode(layout, "pn_FloatMathNode", text = "Float Math")
     layout.separator()
-    insertNode(layout, "pn_VertexGroupWeightNode", "Vertex Group Weight")
-    insertNode(layout, "pn_ImageColorNode", "Image Color")
-    insertNode(layout, "pn_VertexColorNode", "Vertex Color")
+    insertNode(layout, "pn_VertexGroupWeightNode", text = "Vertex Group Weight")
+    insertNode(layout, "pn_ImageColorNode", text = "Image Color")
+    insertNode(layout, "pn_VertexColorNode", text = "Vertex Color")
     layout.separator()
-    insertNode(layout, "pn_RenderPrimitiveNode", "Render Primitive")
-    insertNode(layout, "pn_RenderInstanceNode", "Render Instance")
-    insertNode(layout, "pn_RenderTrailNode", "Render Trail")
+    insertNode(layout, "pn_RenderPrimitiveNode", text = "Render Primitive")
+    insertNode(layout, "pn_RenderInstanceNode", text = "Render Instance")
+    insertNode(layout, "pn_RenderTrailNode", text = "Render Trail")
 
 
 def insertNode(layout, type, text, settings = {}, icon = "NONE"):
@@ -702,4 +709,11 @@ def register():
     bpy.types.NODE_MT_add.append(drawMenu)
 
 def unregister():
-    pass
+    bpy.types.NODE_MT_add.remove(drawMenu)
+    for socketCls in BaseSocket.__subclasses__() + ValueSocket.__subclasses__():
+        if socketCls is ValueSocket:
+            continue
+        bpy.utils.unregister_class(socketCls)
+    for nodeCls in BaseNode.__subclasses__():
+        bpy.utils.unregister_class(nodeCls)
+    bpy.utils.unregister_class(ParticlesNodeTree)
